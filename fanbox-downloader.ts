@@ -146,6 +146,10 @@ async function searchBy(
 	return downloadSettings.downloadObject;
 }
 
+// 投稿取得のリクエスト間隔(ms)。短すぎると FANBOX のクロール防止でブロックされ
+// 途中で切れる。getItemsById 開始時にユーザーが指定する。
+let requestIntervalMs = 1500;
+
 /**
  * ユーザーIDからitemsを得る
  * @param downloadManage ダウンロード設定
@@ -160,13 +164,22 @@ async function getItemsById(downloadManage: DownloadManage) {
 			downloadManage.setLimit(limit);
 		}
 	}
+	// 投稿ごとの待機時間。大きいほどブロックされにくいが遅くなる。
+	const intervalBase = prompt(
+		'投稿ごとの待機時間(ms)\n短いとブロックされて途中で止まります。全件取得時は 2000〜5000 を推奨。',
+		String(requestIntervalMs),
+	);
+	if (intervalBase !== null) {
+		const parsed = Number.parseInt(intervalBase);
+		if (Number.isFinite(parsed) && parsed >= 0) requestIntervalMs = parsed;
+	}
 	const urls = DownloadManage.utils.httpGetAs<{ body: string[] }>(
 		`https://api.fanbox.cc/post.paginateCreator?creatorId=${downloadManage.userId}`,
 	).body;
 	for (let i = 0; i < urls.length; i++) {
 		console.log(`${i + 1}回目`);
 		await addByPostListUrl(downloadManage, urls[i]);
-		await DownloadManage.utils.sleep(100);
+		await DownloadManage.utils.sleep(requestIntervalMs);
 	}
 }
 
@@ -183,7 +196,7 @@ async function addByPostListUrl(downloadManage: DownloadManage, url: string): Pr
 			if (post.body) {
 				addByPostInfo(downloadManage, post);
 			} else if (!post.isRestricted) {
-				await DownloadManage.utils.sleep(100);
+				await DownloadManage.utils.sleep(requestIntervalMs);
 				addByPostInfo(downloadManage, getPostInfoById(post.id));
 			}
 		} else break;
