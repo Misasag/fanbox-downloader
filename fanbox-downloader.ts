@@ -138,7 +138,7 @@ async function searchBy(
 	const definedTags =
 		DownloadManage.utils
 			.httpGetAs<Tags>(`https://api.fanbox.cc/tag.getFeatured?creatorId=${creatorId}`)
-			.body?.map((tag) => tag.tag) ?? [];
+			.body?.featuredTags?.map((tag) => tag.tag) ?? [];
 	downloadSettings.addTags(...definedTags);
 	if (postId) addByPostInfo(downloadSettings, getPostInfoById(postId));
 	else await getItemsById(downloadSettings);

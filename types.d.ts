@@ -18,10 +18,12 @@ type Plans = {
  */
 type Tags = {
 	body?: {
-		tag: string;
-		count: number;
-		coverImageUrl: string;
-	}[];
+		featuredTags: {
+			tag: string;
+			count: number;
+			coverImageUrl: string;
+		}[];
+	};
 };
 
 /**

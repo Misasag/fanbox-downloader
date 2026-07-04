@@ -17,7 +17,9 @@ module.exports = {
         }]
     },
     resolve: {
-        extensions: ['.ts', '.js']
+        // download-helper は .js(コンパイル済み) と .ts(ソース) を同梱している。
+        // .js を先に解決しないと ts-loader が node_modules 内の .ts を再コンパイルしようとして失敗する。
+        extensions: ['.js', '.ts']
     },
     experiments: {
         outputModule: true,

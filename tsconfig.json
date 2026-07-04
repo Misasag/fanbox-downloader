@@ -10,7 +10,9 @@
     "removeComments": true,
     "strict": true,
     "esModuleInterop": true,
+    "moduleResolution": "node",
     "skipLibCheck": true,
+    "types": [],
     "forceConsistentCasingInFileNames": true
   },
   "files": [
