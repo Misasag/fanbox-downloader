@@ -201,9 +201,10 @@ async function getItemsById(downloadManage: DownloadManage) {
  */
 async function addByPostListUrl(downloadManage: DownloadManage, url: string): Promise<void> {
 	const listBody = DownloadManage.utils.httpGetAs<{
-		body?: PostInfo[] | { items?: PostInfo[] };
+		body?: PostInfo[] | { posts?: PostInfo[]; items?: PostInfo[] };
 	}>(url).body;
-	const postList = (Array.isArray(listBody) ? listBody : listBody?.items) ?? [];
+	const postList =
+		(Array.isArray(listBody) ? listBody : listBody?.posts ?? listBody?.items) ?? [];
 	console.log(`投稿の数:${postList.length}`);
 	for (const post of postList) {
 		if (downloadManage.isLimitValid()) {
