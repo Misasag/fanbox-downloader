@@ -141,8 +141,12 @@ async function searchBy(
 			.httpGetAs<Tags>(`https://api.fanbox.cc/tag.getFeatured?creatorId=${creatorId}`)
 			.body?.featuredTags?.map((tag) => tag.tag) ?? [];
 	downloadSettings.addTags(...definedTags);
-	if (postId) addByPostInfo(downloadSettings, getPostInfoById(postId));
-	else await getItemsById(downloadSettings);
+	// 投稿ページでも1件だけでなく作者の投稿をまとめて取得できるようにする
+	if (postId && confirm('この投稿のみ取得する？\n（キャンセル: この作者の投稿をまとめて取得）')) {
+		addByPostInfo(downloadSettings, getPostInfoById(postId));
+	} else {
+		await getItemsById(downloadSettings);
+	}
 	downloadSettings.applyTags();
 	return downloadSettings.downloadObject;
 }
@@ -156,8 +160,15 @@ let requestIntervalMs = 1500;
  * @param downloadManage ダウンロード設定
  */
 async function getItemsById(downloadManage: DownloadManage) {
+	// 先にページ一覧を取り、概算の投稿数を出してから取得数を聞く
+	const paginateBody = DownloadManage.utils.httpGetAs<{
+		body?: string[] | { pageUrls?: string[] };
+	}>(`https://api.fanbox.cc/post.paginateCreator?creatorId=${downloadManage.userId}`).body;
+	const urls = (Array.isArray(paginateBody) ? paginateBody : paginateBody?.pageUrls) ?? [];
 	downloadManage.isIgnoreFree = confirm('無料コンテンツを省く？');
-	const limitBase = prompt('取得制限数を入力 キャンセルで全て取得');
+	const limitBase = prompt(
+		`取得する投稿数を入力（新しい順・全体で最大約${urls.length * 10}件）\nキャンセルで全て取得`,
+	);
 	if (limitBase) {
 		const limit = Number.parseInt(limitBase);
 		if (limit) {
@@ -174,11 +185,9 @@ async function getItemsById(downloadManage: DownloadManage) {
 		const parsed = Number.parseInt(intervalBase);
 		if (Number.isFinite(parsed) && parsed >= 0) requestIntervalMs = parsed;
 	}
-	const paginateBody = DownloadManage.utils.httpGetAs<{
-		body?: string[] | { pageUrls?: string[] };
-	}>(`https://api.fanbox.cc/post.paginateCreator?creatorId=${downloadManage.userId}`).body;
-	const urls = (Array.isArray(paginateBody) ? paginateBody : paginateBody?.pageUrls) ?? [];
 	for (let i = 0; i < urls.length; i++) {
+		// 取得数に達したら残りページは読まない
+		if (!downloadManage.isLimitValid()) break;
 		console.log(`${i + 1}回目`);
 		await addByPostListUrl(downloadManage, urls[i]);
 		await DownloadManage.utils.sleep(requestIntervalMs);
