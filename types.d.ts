@@ -1,15 +1,17 @@
 /**
  * プランAPIの型
  * @see https://api.fanbox.cc/plan.listCreator?creatorId=${creatorId}
+ * 旧形式は body が配列、2026年頃の変更で body.plans に包まれた。両対応。
  */
+type Plan = {
+	id: string;
+	title: string;
+	fee: number;
+	description: string;
+	coverImageUrl: string;
+};
 type Plans = {
-	body?: {
-		id: string;
-		title: string;
-		fee: number;
-		description: string;
-		coverImageUrl: string;
-	}[];
+	body?: Plan[] | { plans?: Plan[] };
 };
 
 /**

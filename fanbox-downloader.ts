@@ -128,9 +128,10 @@ async function searchBy(
 		alert('しらないURL');
 		return;
 	}
-	const plans = DownloadManage.utils.httpGetAs<Plans>(
+	const plansBody = DownloadManage.utils.httpGetAs<Plans>(
 		`https://api.fanbox.cc/plan.listCreator?creatorId=${creatorId}`,
 	).body;
+	const plans = Array.isArray(plansBody) ? plansBody : plansBody?.plans;
 	const feeMapper = new Map<number, string>();
 	plans?.forEach((plan) => feeMapper.set(plan.fee, plan.title));
 	const downloadSettings = new DownloadManage(creatorId, feeMapper);
@@ -173,9 +174,10 @@ async function getItemsById(downloadManage: DownloadManage) {
 		const parsed = Number.parseInt(intervalBase);
 		if (Number.isFinite(parsed) && parsed >= 0) requestIntervalMs = parsed;
 	}
-	const urls = DownloadManage.utils.httpGetAs<{ body: string[] }>(
-		`https://api.fanbox.cc/post.paginateCreator?creatorId=${downloadManage.userId}`,
-	).body;
+	const paginateBody = DownloadManage.utils.httpGetAs<{
+		body?: string[] | { pageUrls?: string[] };
+	}>(`https://api.fanbox.cc/post.paginateCreator?creatorId=${downloadManage.userId}`).body;
+	const urls = (Array.isArray(paginateBody) ? paginateBody : paginateBody?.pageUrls) ?? [];
 	for (let i = 0; i < urls.length; i++) {
 		console.log(`${i + 1}回目`);
 		await addByPostListUrl(downloadManage, urls[i]);
@@ -189,7 +191,10 @@ async function getItemsById(downloadManage: DownloadManage) {
  * @param url
  */
 async function addByPostListUrl(downloadManage: DownloadManage, url: string): Promise<void> {
-	const postList = DownloadManage.utils.httpGetAs<{ body: PostInfo[] }>(url).body;
+	const listBody = DownloadManage.utils.httpGetAs<{
+		body?: PostInfo[] | { items?: PostInfo[] };
+	}>(url).body;
+	const postList = (Array.isArray(listBody) ? listBody : listBody?.items) ?? [];
 	console.log(`投稿の数:${postList.length}`);
 	for (const post of postList) {
 		if (downloadManage.isLimitValid()) {
@@ -208,9 +213,11 @@ async function addByPostListUrl(downloadManage: DownloadManage, url: string): Pr
  * @param postId 投稿ID
  */
 function getPostInfoById(postId: string): PostInfo | undefined {
-	return DownloadManage.utils.httpGetAs<{ body?: PostInfo }>(
+	const body = DownloadManage.utils.httpGetAs<{ body?: PostInfo | { post: PostInfo } }>(
 		`https://api.fanbox.cc/post.info?postId=${postId}`,
 	).body;
+	if (body && 'post' in body) return body.post;
+	return body;
 }
 
 /**
